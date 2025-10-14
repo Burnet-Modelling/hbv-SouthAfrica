@@ -1,0 +1,50 @@
+---
+#Timestep for the model
+sim_dt: 0.25
+
+# Ordered instructions for calibration
+Calibration:
+    repeats: 3
+
+    Liver Cancer Incidence from HBV:
+        maxtime: 800
+        adjustables:
+            (act_hcc):
+                lower_bound: 0.1
+                upper_bound: 5
+                #starting_y_factor: 1
+
+            (eh_cc):
+                lower_bound: 0.1
+                upper_bound: 5
+                #starting_y_factor: 1
+
+            (i_cc):
+                lower_bound: 0.1
+                upper_bound: 2
+                #starting_y_factor: 1
+
+            (i_dc):
+                lower_bound: 0.1
+                upper_bound: 2
+                #starting_y_factor: 1
+
+        measurables:
+            hcc_inc:
+              cal_start: 1990
+              cal_end: 2025
+
+    Nucleoside Analogue (Treatment) Coverage:
+        maxtime: 800
+
+        adjustables:
+            (tx_rate_calib):
+                lower_bound: 0.0001
+                upper_bound: 0.05
+                #starting_y_factor: 1
+
+        measurables:
+            treated:
+              cal_start: 1990
+              cal_end: 2025
+

@@ -1,0 +1,40 @@
+---
+#Timestep for the model
+sim_dt: 0.25
+
+# Ordered instructions for calibration
+Calibration:
+    repeats: 3
+    Hepatitis B transmission and prevalence calibration:
+          Match HBsAg seroprevalence:
+              maxtime: 800
+
+              adjustables:
+                  (foi_cal):
+                      lower_bound: 0.01
+                      upper_bound: 10
+                      #starting_y_factor: 1
+
+              measurables:
+                  hbsag_prev:
+                      cal_start: 1990
+                      cal_end: 2025
+
+          Match HBeAg seroprevalence:
+              maxtime: 800
+
+              adjustables:
+                  (eh_si):
+                      lower_bound: 0.01
+                      upper_bound: 10
+                      #starting_y_factor: 1
+
+              measurables:
+                  hbeag_prev:
+                    cal_start: 1990
+                    cal_end: 2005
+
+
+
+
+

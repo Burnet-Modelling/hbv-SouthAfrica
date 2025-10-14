@@ -1,0 +1,17 @@
+---
+#Timestep for the model
+sim_dt: 0.25
+
+# Ordered instructions for calibration
+Calibration:
+    Match total population sizes:
+        maxtime: 500
+        adjustables:
+            (mig_rate):
+                lower_bound: 0.5
+                upper_bound: 2
+                #starting_y_factor: 1
+        measurables:
+            alive:
+              cal_start: 1990
+              cal_end: 2100
