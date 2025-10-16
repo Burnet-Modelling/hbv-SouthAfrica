@@ -4,45 +4,34 @@ import numpy as np
 sim_dt = 0.25 # simulation timestep
 sim_start = 1990 # simulation start year
 sim_end = 2101 # simulation end year
-runs = 200  # number of samples for PSA
+runs = 30  # number of samples for PSA
 seed = 20250902 # set seed for numpy random sampling
 
-framework_path = hbv.root/"framework"/"hbv_fw_v2.1.2.xlsx" # path to framework
-databook_path
-calibration_path
-costs_path
-
-# Population sheet names in data_flatsheet_hbv.xlsx
-pop_sheet_names = ["Births - (thousands)", "Births - Sex-Ratio (m to f)", "Population - Male (thousands)",
-                   "Population - Female (thousands)", "Mortality - Male (thousands)", "Mortality - Female (thousands)",
-                   "Life Expectancy - Male", "Life Expectancy - Female"]
-
-pop_sheet_measures = ["births", "sex_ratio", "male_pop", "female_pop", "male_deaths", "female_deaths", "lifex_male",
-                       "lifex_female"]
+framework_path = hbv.root/"framework"/"hbv_hepbd_zaf_fw.xlsx" # path to framework
+databook_path = hbv.root/"data"/"ZAF_databook.xlsx" # path to databook
+calibration_path = hbv.root/"calibration"/"ZAF_calibration.xlsx" # path to calibration (y_) factors
+samples_path = hbv.root/"data"/"ZAF_samples.xlsx" # path to model uncertainty bounds
+costs_path = hbv.root/"data"/"ZAF_costs.xlsx" # path to cost inputs
 
 # Population Bins
 pop_bins = {"0-0":[0,0], "1-4":[1,4], "5-9":[5,9], "10-19":[10,19], "20-29":[20,29], "30-39":[30,39], "40-49":[40,49],
-            "50-59":[50,59], "60-69":[60,69], "70-79":[70,79], "80-89":[80,89], "90+":[90,"100+"]}
+            "50-59":[50,59], "60-69":[60,69], "70-79":[70,79], "80-89":[80,89], "90+":[90,"100+"]} # All model age bins
 
-birth_bins = {"10-19": [15, 19], "20-29": [20,29], "30-39": [30,39], "40-49": [40,49], "total": [15, 49]}
+birth_bins = {"10-19": [15, 19], "20-29": [20,29], "30-39": [30,39], "40-49": [40,49], "total": [15, 49]}  # WOCBA
 
 trans_bins = {"0-0": [0], "1-4": [4], "5-9": [9], "10-19": [19], "20-29": [29], "30-39": [39], "40-49": [49],
-              "50-59": [59], "60-69": [69], "70-79": [79], "80-89": [89]}
+              "50-59": [59], "60-69": [69], "70-79": [79], "80-89": [89]}  # Age Transfers
 
-zaf_scenarios = ["baseline",
-                 "pessimistic_selective_SA", "optimistic_selective_SA",
-                 "pessimistic_selective_WHO", "optimistic_selective_WHO",
-                 "pessimistic_universal", "optimistic_universal",
-                 "pessimistic_combined_SA", "optimistic_combined_SA",
-                 "pessimistic_combined_WHO", "optimistic_combined_WHO"]
+main_scenarios = ["baseline", "sel pap + sel bd", "universal", "sel pap + univ bd"]
+add_scenarios = ["sel pap dna + sel bd", "sel pap dna + univ bd"]
+zaf_scenarios = main_scenarios + add_scenarios
+
+main_full = ["Baseline \n (No HepB-BD)", "Selective PAP \n+ Selective HepB-BD", "Universal \n HepB-BD",
+             "Selective PAP \n+ Universal HepB-BD"]
+add_full = ["Selective PAP (DNA) \n+ Selective HepB-BD", "Selective PAP (DNA) \n+ Universal HepB-BD"]
+zaf_scenarios_full = main_full + add_full
 
 
-zaf_scenarios_full = ["Baseline \n (No HepB-BD)",
-                      "Selective HepB-BD \n (Pessimistic, Current Guidelines)", "Selective HepB-BD \n (Optimistic, Current Guidelines)",
-                      "Selective HepB-BD \n (Pessimistic, WHO Guidelines)", "Selective HepB-BD \n (Optimistic, WHO Guidelines)",
-                      "Universal HepB-BD \n (Pessimistic)", "Universal HepB-BD \n (Optimistic)",
-                      "Combined HepB-BD \n (Pessimistic, Current Guidelines)", "Combined HepB-BD \n (Optimistic, Current Guidelines)",
-                      "Combined HepB-BD \n (Pessimistic, WHO Guidelines)", "Combined HepB-BD \n (Optimistic, WHO Guidelines)"]
 
 zaf_scenarios_selective = ["pessimistic_selective_SA", "optimistic_selective_SA",
                            "pessimistic_selective_WHO", "optimistic_selective_WHO"] #hepbd cost hep_bd_tgt

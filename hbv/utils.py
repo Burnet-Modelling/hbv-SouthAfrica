@@ -1,171 +1,15 @@
 from hbv import constants as const
-from gitlab_utils import _get_sharepoint_folder, _get_gitlab_folder
 import atomica as at
 import pathlib
 import pandas as pd
 import numpy as np
-import at_tools
 import sciris as sc
-
-# TODO: For next VIMC run (or any multisetting analysis, update calibration function)
-
-def calibrate_single_country(country , savedir = _get_gitlab_folder()+"calibrations/revisions/"):
-
-    # Make save directory if not already made (use revisions folder as it means nothing accidentally over written)
-    savedir = pathlib.Path(savedir)
-    savedir.mkdir(parents = True, exist_ok = True)
-
-    # Import pre-requisites for calibration
-    F = at.ProjectFramework(const.framework_path)
-    P = at.Project(framework= F, databook =_get_gitlab_folder()+"databooks/"+f"{country}_databook.xlsx")
-    P.settings.update_time_vector(start=const.sim_start, end = const.sim_end, dt = const.sim_dt)
-    cal = P.make_parset()
-
-    # Run calibrations using YAML files (make calib_yaml file and update structuring)
-    pop_yaml = pathlib.Path(_get_gitlab_folder()+"yaml_calibrations/hbv_population_calibrate.yaml")
-    cal = P.calibrate(cal, yaml = pop_yaml, savedir = savedir, log_output = True, save_intermediate = False)
-    cal.save_calibration(savedir/f"{country}_calibration_pop.xlsx")
-
-    infx_yaml = pathlib.Path(_get_gitlab_folder()+"yaml_calibrations/hbv_prevalence_calibrate.yaml")
-    cal = P.calibrate(cal, yaml = infx_yaml, savedir = savedir, log_output = True, save_intermediate = False)
-    cal.save_calibration(savedir/f"{country}_calibration_pop_prev.xlsx")
-
-
-    burden_yaml = pathlib.Path(_get_gitlab_folder()+"yaml_calibrations/hbv_burden_calibrate.yaml")
-    cal = P.calibrate(cal, yaml = burden_yaml, savedir = savedir, log_output = True, save_intermediate = False)
-    cal.save_calibration(savedir/f"{country}_calibration.xlsx")
-
-
-def central_run_only(db_path, calib_path, calibration):
-    """
-    Returns results items in a dictionary for plotting/datachecking - useful when wanting to try things, re-calibrate etc
-    (no need to do 200 runs per thing).
-    """
-
-    F = at.ProjectFramework(const.framework_path)
-    db_path = pathlib.Path(db_path+"ZAF_databook.xlsx")
-    cal_dir = pathlib.Path(calib_path + calibration)
-
-    res_store = {}
-    for scen in const.zaf_scenarios:
-        res_store[scen]={}
-        res_store[scen]["P"] = []
-        res_store[scen]["res"] = []
-
-    for scen in const.zaf_scenarios:
-        # Set up each modelled scenario
-        if scen == "baseline":
-            D = at.ProjectData.from_spreadsheet(db_path, framework= F) # no changes required
-        # Selective HepB-BD, Current Guidelines
-        if scen == "pessimistic_selective_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework= F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Targeted (selective) HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_selective_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework= F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Targeted (selective) HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Selective HepB-BD, WHO Guidelines
-        if scen == "pessimistic_selective_WHO":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to one (treat all HBsAg+ diagnosed mothers)
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 1
-            # Targeted (selective) HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_selective_WHO":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to one (treat all HBsAg+ diagnosed mothers)
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 1
-            # Targeted (selective) HepB-BD coverage to 80%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Universal HepB-BD
-        if scen == "pessimistic_universal":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Set universal HepB-BD coverage to 40%
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_universal":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Set Universal HepB-BD coverage to 80%
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Selective + Universal, Current Guidelines
-        if scen == "pessimistic_combined_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Set Targeted and Universal HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_combined_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Set Targeted and Universal HepB-BD coverage to 80%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Selective + Universal, WHO Guidelines
-        if scen == "pessimistic_combined_WHO":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 1
-            # Set Targeted and Universal HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_combined_WHO":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 1
-            # Set Targeted and Universal HepB-BD coverage to 80%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-
-        P = at.Project(framework=F, databook=D, do_run=False, sim_start=const.sim_start,
-                       sim_end=const.sim_end, sim_dt=const.sim_dt)
-        cal = P.parsets[0].load_calibration(cal_dir)
-        res = P.run_sim(parset=cal, result_name=f"{scen}")
-
-        res_store[scen]["P"].append(P)
-        res_store[scen]["res"].append(res)
-        
-    return res_store
 
 
 def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
 
     """
-    This function carries out main analyses of HepB-BD South Africa modelling study. Not aimed to be a transferrable
-    function.
+    Runs the model (central and PSA) scenarios and returns results as a .pkl file
     """
     # Sample transition and effectiveness parameters (all triangular)
     np.random.seed(const.seed)  # sets seed for random sampling
@@ -202,33 +46,8 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
         # Set up each modelled scenario
         if scen == "baseline":
             D = at.ProjectData.from_spreadsheet(db_path, framework= F) # no changes required
-        # Selective HepB-BD, Current Guidelines
-        if scen == "pessimistic_selective_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework= F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Targeted (selective) HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_selective_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework= F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Targeted (selective) HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Selective HepB-BD, WHO Guidelines
-        if scen == "pessimistic_selective_WHO":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to one (treat all HBsAg+ diagnosed mothers)
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 1
-            # Targeted (selective) HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_selective_WHO":
+        # Selective PAP + Selective HepB-BD (main scenario)
+        if scen == "sel pap + sel bd":
             D = at.ProjectData.from_spreadsheet(db_path, framework=F)
             # Set mav_trtall to one (treat all HBsAg+ diagnosed mothers)
             D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
@@ -236,16 +55,8 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
             # Targeted (selective) HepB-BD coverage to 80%
             D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
             D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Universal HepB-BD
-        if scen == "pessimistic_universal":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Set universal HepB-BD coverage to 40%
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_universal":
+        # Universal HepB-BD only (main scenario)
+        if scen == "universal":
             D = at.ProjectData.from_spreadsheet(db_path, framework=F)
             # Set mav_trtall to zero
             D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
@@ -253,18 +64,8 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
             # Set Universal HepB-BD coverage to 80%
             D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
             D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Selective + Universal, Current Guidelines
-        if scen == "pessimistic_combined_SA":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
-            # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
-            # Set Targeted and Universal HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_combined_SA":
+        # Selective PAP + Universal HepB-BD (main scenario)
+        if scen == "sel pap dna + univ bd":
             D = at.ProjectData.from_spreadsheet(db_path, framework=F)
             # Set mav_trtall to zero
             D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
@@ -274,18 +75,17 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
             D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
             D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
             D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
-        # Selective + Universal, WHO Guidelines
-        if scen == "pessimistic_combined_WHO":
-            D = at.ProjectData.from_spreadsheet(db_path, framework=F)
+        # Selective PAP (viral load conditional) + selective HepB-BD (supplemental)
+        if scen == "sel pap dna + sel bd":
+            D = at.ProjectData.from_spreadsheet(db_path, framework= F)
             # Set mav_trtall to zero
-            D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
-            D.tdve["mav_trtall"].ts["0-0F"].assumption = 1
-            # Set Targeted and Universal HepB-BD coverage to 40%
-            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-            D.tdve["univ_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.4, 0.4], units="Number")
-        if scen == "optimistic_combined_WHO":
+            D.tdve["mav_trtall"].ts["0-0M"].assumption = 0
+            D.tdve["mav_trtall"].ts["0-0F"].assumption = 0
+            # Targeted (selective) HepB-BD coverage to 40%
+            D.tdve["tgt_bd_cov"].ts["0-0M"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
+            D.tdve["tgt_bd_cov"].ts["0-0F"] = at.TimeSeries([1990, 2024, 2030, 2050], [0, 0, 0.8, 0.8], units="Number")
+        # Selective PAP (viral load conditional) + Universal HepB-BD (supplemental)
+        if scen == "sel pap + univ bd":
             D = at.ProjectData.from_spreadsheet(db_path, framework=F)
             # Set mav_trtall to zero
             D.tdve["mav_trtall"].ts["0-0M"].assumption = 1
@@ -319,7 +119,7 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
 
             print(f"Run {run} of scenario {scen} completed")
 
-    filename = sc.makefilepath(filename=f"ZAF_{const.runs}_sims.pkl", folder = res_save_dir/'result_pkls', makedirs= True)
+    filename = sc.makefilepath(filename=f"ZAF_{const.runs}_sims.pkl", folder = res_save_dir/'model results', makedirs= True)
     sc.save(filename=filename, obj=res_store)
 
 def zaf_epi_outcomes(res_save_dir):
@@ -523,39 +323,22 @@ def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
 
     # HepB-BD costs (HepB-BD vaccines administered at birth)
     for scen in scenarios:
-        if (scen == "baseline"
-            or scen == "pessimistic_universal"
-            or scen == "optimistic_universal"
-            or scen == "pessimistic_combined_SA"
-            or scen == "optimistic_combined_SA"
-            or scen == "pessimistic_combined_WHO"
-            or scen == "optimistic_combined_WHO"):
+        if scen == 'baseline' or scen == 'universal' or scen == 'sel pap + univ bd' or scen == 'sel pap dna + univ bd':
             for run in range(const.runs+1):
                 costs[scen]["hepbd"].iloc[:, run+1] = data[scen]["total_hepbd"].iloc[:, run+1]*cost_sample.loc["hepb_bd_univ"][run+1]*disc_array.iloc[:, 1]
-        elif (scen == "pessimistic_selective_SA"
-            or scen == "optimistic_selective_SA"
-            or scen == "pessimistic_selective_WHO"
-            or scen == "optimistic_selective_WHO"):
+        elif scen == 'sel pap + sel bd' or scen == 'sel pap dna + sel bd':
             for run in range(const.runs+1):
                 costs[scen]["hepbd"].iloc[:, run+1] = data[scen]["total_hepbd"].iloc[:, run+1]*cost_sample.loc["hepb_bd_tgt"][run+1]*disc_array.iloc[:, 1]
 
     # HepB-BD costs (additional if universal vax also applies to test negative)
     for scen in scenarios:
-        if (scen == "baseline"
-            or scen == "pessimistic_universal"
-            or scen == "optimistic_universal"):
+        if scen == 'baseline' or scen == 'universal':
             for run in range(const.runs+1):
                 costs[scen]["hepbd_add"].iloc[:, run+1] = data[scen]["total_hepbd"].iloc[:, run+1]*cost_sample.loc["hepb_bd_univ"][run+1]*disc_array.iloc[:, 1]
-        elif (scen == "pessimistic_selective_SA"
-            or scen == "optimistic_selective_SA"
-            or scen == "pessimistic_selective_WHO"
-            or scen == "optimistic_selective_WHO"):
+        elif scen == "sel pap + sel bd" or scen == "sel pap dna + sel bd":
             for run in range(const.runs+1):
                 costs[scen]["hepbd_add"].iloc[:, run+1] = data[scen]["total_hepbd"].iloc[:, run+1]*cost_sample.loc["hepb_bd_tgt"][run+1]*disc_array.iloc[:, 1]
-        elif (scen == "pessimistic_combined_SA"
-            or scen == "optimistic_combined_SA"
-            or scen == "pessimistic_combined_WHO"
-            or scen == "optimistic_combined_WHO"):
+        elif scen == "sel pap + univ bd" or scen == "sel pap dna + univ bd":
             for run in range(const.runs+1):
                 costs[scen]["hepbd_add"].iloc[:, run+1] = (data[scen]["total_hepbd"].iloc[:, run+1]+data[scen]["select_hepbd_univ"].iloc[:, run+1])*cost_sample.loc["hepb_bd_univ"][run+1]*disc_array.iloc[:, 1]
 
