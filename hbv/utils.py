@@ -6,14 +6,14 @@ import numpy as np
 import sciris as sc
 
 
-def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
+def hepbd_scenarios_ZAF(res_save_dir):
 
     """
     Runs the model (central and PSA) scenarios and returns results as a .pkl file
     """
     # Sample transition and effectiveness parameters (all triangular)
     np.random.seed(const.seed)  # sets seed for random sampling
-    trans_pars = pd.read_excel(_get_sharepoint_folder()+"Data\\hbv_flat datasheet.xlsx", sheet_name= "Global Pars")
+    trans_pars = pd.read_excel(const.samples_path)
     tpar_names = list(pd.unique(trans_pars.par))
 
     sampled_pars = pd.DataFrame(columns = ["pars", "central"] + [f"run_{i}" for i in range(1, const.runs+1, 1)])
@@ -30,8 +30,8 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
 
     # Framework, Databook and Calibration Paths for Running Model
     F = at.ProjectFramework(const.framework_path)
-    db_path = pathlib.Path(db_path+"ZAF_databook.xlsx")
-    cal_dir = pathlib.Path(calib_path + calibration)
+    db_path = pathlib.Path(const.db_path)
+    cal_dir = pathlib.Path(const.calibration)
 
     # Generate storage dictionary to save model runs
     res_store = {}
@@ -125,10 +125,10 @@ def hepbd_scenarios_ZAF(db_path, calib_path, calibration, res_save_dir):
 def zaf_epi_outcomes(res_save_dir):
     scenarios = const.zaf_scenarios
     comparators = scenarios[1:] # to get differences
-    data = sc.load(res_save_dir/'result_pkls'/f"ZAF_{const.runs}_sims.pkl")
+    data = sc.load(res_save_dir/'model results'/f"ZAF_{const.runs}_sims.pkl")
 
     # Make Save Directory
-    fig_tab_dir = res_save_dir/'tab_figs'
+    fig_tab_dir = res_save_dir/'raw_tab_figs'
     fig_tab_dir.mkdir(parents=True, exist_ok=True)
 
     # Data for Table 2
@@ -175,7 +175,7 @@ def zaf_epi_outcomes(res_save_dir):
             epi_comp_long.at[comp, f"{meas}_ub"] = np.percentile(np.sum(data["baseline"][meas].iloc[34:, 2:]) -  np.sum(data[comp][meas].iloc[34:, 2:]), 97.5)
 
     # Export to a consolidated excel spreadsheet
-    with pd.ExcelWriter(res_save_dir/'tab_figs'/'table2epi.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(res_save_dir/'raw_tab_figs'/'table2epi.xlsx', engine='xlsxwriter') as writer:
         epi_tot_short.to_excel(writer, sheet_name = "Sum Res_2050", index=True)
         epi_tot_long.to_excel(writer, sheet_name = "Sum Res_2100", index=True)
         epi_comp_short.to_excel(writer, sheet_name = "Dif Res_2050", index=True)
@@ -193,7 +193,7 @@ def zaf_epi_outcomes(res_save_dir):
         fig2_data[scen].tot_sum = fig2_data[scen].mtct + fig2_data[scen].echt + fig2_data[scen].oth
         fig2_data[scen].validation = fig2_data[scen].tot_sum - data[scen]["tot_inc"].central
 
-    excel_file_path = res_save_dir/'tab_figs'/'fig2data.xlsx'
+    excel_file_path = res_save_dir/'raw_tab_figs'/'CHB_transmission_source.xlsx'
     writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
     for sheet_name, df in fig2_data.items():
         df.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -217,7 +217,7 @@ def zaf_epi_outcomes(res_save_dir):
     column_headers = "Central, Lower, Upper"
     description = "CHB infection rate among all births (Row 1), CHB infection from HBsAg+ mothers (Row 2), MTCT among all incident infections (Row 3), from 2025-2100"
 
-    np.savetxt(res_save_dir/'tab_figs'/'context_data.csv', context_data, delimiter=",", header = column_headers,
+    np.savetxt(res_save_dir/'raw_tab_figs'/'Baseline_transmission_data.csv', context_data, delimiter=",", header = column_headers,
                comments = f'# {description} \n')
 
     # Data for Figure 3 and associated discussion (number needed to vaccinate)
@@ -231,7 +231,7 @@ def zaf_epi_outcomes(res_save_dir):
             nnv_plot.at[comp, f"{meas}_lb"] = np.percentile((np.sum(data[comp]["total_hepbd"].iloc[34:, 2:])-np.sum(data["baseline"]["total_hepbd"].iloc[34:, 2:]))/ (np.sum(data["baseline"][meas].iloc[34:, 2:])-np.sum(data[comp][meas].iloc[34:, 2:])), 2.5)
             nnv_plot.at[comp, f"{meas}_ub"] = np.percentile((np.sum(data[comp]["total_hepbd"].iloc[34:, 2:])-np.sum(data["baseline"]["total_hepbd"].iloc[34:, 2:]))/ (np.sum(data["baseline"][meas].iloc[34:, 2:])-np.sum(data[comp][meas].iloc[34:, 2:])), 97.5)
 
-    nnv_plot.to_csv(res_save_dir/'tab_figs'/'fig3data.csv', index=True)
+    nnv_plot.to_csv(res_save_dir/'raw_tab_figs'/'NNV_main.csv', index=True)
 
     # Data for alternate Figure 3 (univ HepB-BD applied to HBsAg negative screened births)
     nnv_plot_add =  pd.DataFrame(columns = ["scenario"] + [f"{nnv}_{bd}" for nnv in epi_measures for bd in ["cent", "lb", "ub"]])
@@ -244,35 +244,14 @@ def zaf_epi_outcomes(res_save_dir):
             nnv_plot_add.at[comp, f"{meas}_lb"] = np.percentile(((np.sum(data[comp]["total_hepbd"].iloc[34:, 2:])+np.sum(data[comp]["select_hepbd_univ"].iloc[34:, 2:]))-np.sum(data["baseline"]["total_hepbd"].iloc[34:, 2:]))/ (np.sum(data["baseline"][meas].iloc[34:, 2:])-np.sum(data[comp][meas].iloc[34:, 2:])), 2.5)
             nnv_plot_add.at[comp, f"{meas}_ub"] = np.percentile(((np.sum(data[comp]["total_hepbd"].iloc[34:, 2:])+np.sum(data[comp]["select_hepbd_univ"].iloc[34:, 2:]))-np.sum(data["baseline"]["total_hepbd"].iloc[34:, 2:]))/ (np.sum(data["baseline"][meas].iloc[34:, 2:])-np.sum(data[comp][meas].iloc[34:, 2:])), 97.5)
 
-    nnv_plot_add.to_csv(res_save_dir/'tab_figs'/'fig3data_add.csv', index=True)
+    nnv_plot_add.to_csv(res_save_dir/'raw_tab_figs'/'NNV_additional.csv', index=True)
 
-    # Supplemental Plot: WHO Targets (mortality and incidence per 100k) from each scenario
-    who_plot = {}
-    who_measures = ["who_inc_u5", "who_inc_pop", "who_mort"]
 
-    for whom in who_measures:
-        who_plot[whom] = pd.DataFrame(columns = ["year"]+[f"{scen}_{bound}" for scen in const.zaf_scenarios for bound in ["cent", "lb", "ub"]])
-        who_plot[whom].year = np.arange(1990.5, 2101.5, 1)
-
-        for scen in const.zaf_scenarios:
-            who_plot[whom][f"{scen}_cent"] = data[scen][whom].iloc[:, 1]
-            who_plot[whom][f"{scen}_lb"] = np.percentile(data[scen][whom].iloc[:, 2:], 2.5, axis = 1)
-            who_plot[whom][f"{scen}_ub"] = np.percentile(data[scen][whom].iloc[:, 2:], 97.5, axis = 1)
-
-    excel_file_path = res_save_dir/'tab_figs'/'whotarget_data.xlsx'
-    writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
-    for sheet_name, df in who_plot.items():
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-    writer.close()
 
 def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
 
     # Extract costs from flat datasheet
-    flat_data = _get_sharepoint_folder() + "Data\\hbv_flat datasheet.xlsx"
-    costs = pd.read_excel(flat_data, sheet_name="HBV Costs")
-
-    # Conversion to USD
-    usd_conversion = 1/costs[costs.cost_comp=="currency_conv"].iloc[0,4]
+    costs = pd.read_excel(const.costs_path)
 
     np.random.seed(const.seed) # set seed for reproducibility
     # Sample DALY weights (triangular)
@@ -294,7 +273,7 @@ def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
     cost_sample = cost_sample.set_index('par', drop=False)
 
     # Discount Arrays
-    data = sc.load(res_save_dir / 'result_pkls' / f"ZAF_{const.runs}_sims.pkl")
+    data = sc.load(res_save_dir/'model results'/f"ZAF_{const.runs}_sims.pkl")
     disc_array = pd.DataFrame(columns=["year", "consumables", "health"])
     disc_array.year = data["baseline"]["total_hepbd"].year
 
@@ -528,7 +507,7 @@ def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
             comp_long.at[comp, f"{eff}_ub"] = np.percentile(dalys[comp][eff].iloc[1,2:], 97.5)
 
     # Export to a consolidated excel spreadsheet
-    with pd.ExcelWriter(res_save_dir/'tab_figs'/'table2econ.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(res_save_dir/'raw_tab_figs'/'table2econ.xlsx', engine='xlsxwriter') as writer:
         tot_short.to_excel(writer, sheet_name="Sum Res_2050", index=True)
         tot_long.to_excel(writer, sheet_name="Sum Res_2100", index=True)
         comp_short.to_excel(writer, sheet_name="Dif Res_2050", index=True)
@@ -572,34 +551,19 @@ def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
                 cef_data_long_add[f"{wtp}_thresh"].at[f"run_{run}", scen] = (np.sum(dalys[scen]["dalys"].iloc[34:, run+1])*wtp)+(np.sum(costs[scen]["total_add"].iloc[34:, run+1]))
 
 
-    filename_short = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_short_data.pkl", folder=res_save_dir/'result_pkls', makedirs=True)
+    filename_short = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_2025_2050_main.pkl", folder=res_save_dir/'cost_pickles', makedirs=True)
     sc.save(filename=filename_short, obj=cef_data_short)
 
-    filename_short = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_short_add_data.pkl", folder=res_save_dir/'result_pkls', makedirs=True)
+    filename_short = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_2025_2050_supp.pkl", folder=res_save_dir/'cost_pickles', makedirs=True)
     sc.save(filename=filename_short, obj=cef_data_short_add)
 
-    filename_long = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_long_data.pkl", folder=res_save_dir/'result_pkls', makedirs=True)
+    filename_long = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_2025_2100_main.pkl", folder=res_save_dir/'cost_pickles', makedirs=True)
     sc.save(filename=filename_long, obj=cef_data_long)
 
-    filename_long = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_long_data_add.pkl", folder=res_save_dir/'result_pkls', makedirs=True)
+    filename_long = sc.makefilepath(filename=f"ZAF_{const.runs}_cef_2025_2100_supp.pkl", folder=res_save_dir/'cost_pickles', makedirs=True)
     sc.save(filename=filename_long, obj=cef_data_long_add)
 
-    # Export HepB-BD cost components for each scenario (central only)
-    vax_comps = ["hepbd", "hepbd_add", "mat_scr", "mat_av"]
-    vax_costs = {}
 
-    for vcomp in vax_comps:
-        vax_costs[vcomp] = pd.DataFrame(columns = ["year"] + const.zaf_scenarios)
-        vax_costs[vcomp].year = np.arange(1990.5, 2101.5, 1)
-
-        for scen in const.zaf_scenarios:
-            vax_costs[vcomp][scen] = costs[scen][vcomp].iloc[:, 1] # Column 1 is the central estimate
-
-    excel_file_path = res_save_dir/'tab_figs'/'vcost_data.xlsx'
-    writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
-    for sheet_name, df in vax_costs.items():
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-    writer.close()
 
 
 

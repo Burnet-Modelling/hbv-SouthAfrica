@@ -4,12 +4,12 @@ import numpy as np
 sim_dt = 0.25 # simulation timestep
 sim_start = 1990 # simulation start year
 sim_end = 2101 # simulation end year
-runs = 30  # number of samples for PSA
+runs = 10  # number of samples for PSA
 seed = 20250902 # set seed for numpy random sampling
 
 framework_path = hbv.root/"framework"/"hbv_hepbd_zaf_fw.xlsx" # path to framework
-databook_path = hbv.root/"data"/"ZAF_databook.xlsx" # path to databook
-calibration_path = hbv.root/"calibration"/"ZAF_calibration.xlsx" # path to calibration (y_) factors
+db_path = hbv.root/"data"/"ZAF_databook.xlsx" # path to databook
+calibration = hbv.root/"calibration"/"ZAF_calibration.xlsx" # path to calibration (y_) factors
 samples_path = hbv.root/"data"/"ZAF_samples.xlsx" # path to model uncertainty bounds
 costs_path = hbv.root/"data"/"ZAF_costs.xlsx" # path to cost inputs
 

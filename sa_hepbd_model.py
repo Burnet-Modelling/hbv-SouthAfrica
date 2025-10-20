@@ -1,12 +1,12 @@
 import pathlib
 import hbv.constants as const
-#import hbv.utils
+import hbv.utils
 #import hbv.utils_plotting
 #import hbv.sensitivity
 
 
 # Set Own Save Directory
-#save_path  =
+save_path  = "C:/Users/seama/Desktop/SA test/"
 
 # Creates directory (if not already existing)
 save_dir = pathlib.Path(save_path)
@@ -15,12 +15,12 @@ save_dir.mkdir(parents=True, exist_ok=True)
 # Run Main Analyses (number of runs can be modified in constants.py script)
 # Note: This will return a pickle (.pkl) of extracted model results for post processing.
 
-hbv.utils.hepbd_scenarios_ZAF(const.db_path, const.calib_path, const.calibration, save_dir)
+hbv.utils.hepbd_scenarios_ZAF(save_dir)
 
 # Data Analysis (Data for Plots and Tables Returned)
 
-hbv.utils.zaf_epi_outcomes(res_save_dir) # Epidemiological Outcomes
-hbv.zaf_economic_analysis(res_save_dir, h_disc=0.03, c_disc=0.03) # Economic outcomes, returns .pkl for cost-effectiveness fronteirs
+hbv.utils.zaf_epi_outcomes(save_dir) # Epidemiological Outcomes
+hbv.utils.zaf_economic_analysis(save_dir, h_disc=0.03, c_disc=0.03) # Economic outcomes, returns .pkl for cost-effectiveness fronteirs
 
 # Generate Outcome Plots (main analysis)
 hbv.utils_plotting.cost_eff_frontier(res_save_dir) # Figure 1, Figure 2
