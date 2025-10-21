@@ -4,7 +4,7 @@ import numpy as np
 sim_dt = 0.25 # simulation timestep
 sim_start = 1990 # simulation start year
 sim_end = 2101 # simulation end year
-runs = 10  # number of samples for PSA
+runs = 200  # number of samples for PSA
 seed = 20250902 # set seed for numpy random sampling
 
 framework_path = hbv.root/"framework"/"hbv_hepbd_zaf_fw.xlsx" # path to framework

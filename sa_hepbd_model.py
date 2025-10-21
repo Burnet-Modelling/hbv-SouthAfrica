@@ -2,11 +2,11 @@ import pathlib
 import hbv.constants as const
 import hbv.utils
 import hbv.utils_plotting
-#import hbv.sensitivity
+import hbv.sensitivity
 
 
 # Set Own Save Directory
-save_path  = "C:/Users/seama/Desktop/SA test/"
+save_path  =
 
 # Creates directory (if not already existing)
 save_dir = pathlib.Path(save_path)
@@ -28,8 +28,8 @@ hbv.utils_plotting.cost_eff_frontier(save_dir) # Cost Effectiveness Frontiers
 hbv.utils_plotting.transmission_plots(save_dir)  # Transmission modality in baseline scenario
 
 # One Way Sensitivity Analysis (main analysis Figure 3)
-owsa_runs = hbv.sensitivity.owsa_mtct_run(db_path, calib_path, calibration) #run OWSA scenarios
-hbv.sensitivity.owsa_mtct_outcomes(owsa_runs, res_save_dir) # calculate and plot outcomes
+owsa_runs = hbv.sensitivity.owsa_mtct_run() #run OWSA scenarios
+hbv.sensitivity.owsa_mtct_outcomes(owsa_runs, save_dir) # calculate and plot outcomes
 
 
 
