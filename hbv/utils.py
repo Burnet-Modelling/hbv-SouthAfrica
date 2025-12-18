@@ -1,3 +1,5 @@
+from typing import Any
+
 from hbv import constants as const
 import atomica as at
 import pathlib
@@ -246,7 +248,53 @@ def zaf_epi_outcomes(res_save_dir):
 
     nnv_plot_add.to_csv(res_save_dir/'raw_tab_figs'/'NNV_additional.csv', index=True)
 
+def who_targets_measure(res_save_dir):
 
+   # Import Data and Set Save Location
+    comparators = const.zaf_scenarios[1:] # to get differences
+    data = sc.load(res_save_dir/'model results'/f"ZAF_{const.runs}_sims.pkl")
+    fig_tab_dir = res_save_dir / 'raw_tab_figs'
+
+   # Extract data to measure progress vs WHO targets
+    who_extract = ["who_inc_u5", "who_inc_pop", "who_mort"]
+
+    # Absolute Incidence Rate Values
+    who_data_abs = {}
+    for who in who_extract:
+        who_data_abs[who]=pd.DataFrame(columns=["year"] + [f"{scen}_{bd}" for scen in const.zaf_scenarios for bd in ["cent", "lb", "ub"]])
+        who_data_abs[who].year = data["baseline"]["total_hepbd"].year
+
+       # Extract values and uncertainty bounds
+        for scen in const.zaf_scenarios:
+            who_data_abs[who][f"{scen}_cent"] = data[scen][who].iloc[:, 1]
+            who_data_abs[who][f"{scen}_lb"] = np.percentile(data[scen][who].iloc[:, 2:], 2.5, axis=1)
+            who_data_abs[who][f"{scen}_ub"] = np.percentile(data[scen][who].iloc[:, 2:], 97.5, axis=1)
+
+    # Save to excel (to be called for subsequent plotting)
+    excel_file_path = fig_tab_dir / 'Absolute WHO Target Impacts.xlsx'
+    writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
+    for sheet_name, df in who_data_abs.items():
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+    writer.close()
+
+   # Relative Reductions
+    who_data_rel = {}
+
+    for who in who_extract:
+        who_data_rel[who] = pd.DataFrame(columns = ["year"] + [f"{scen}_{bd}" for scen in comparators for bd in ["cent", "lb", "ub"]])
+        who_data_rel[who].year = data["baseline"]["total_hepbd"].year
+
+        for scen in comparators:
+            who_data_rel[who][f"{scen}_cent"] = ((data["baseline"][who].iloc[:, 1] - data[scen][who].iloc[:, 1])/data["baseline"][who].iloc[:, 1])
+            who_data_rel[who][f"{scen}_lb"] = np.percentile(((data["baseline"][who].iloc[:, 2:] - data[scen][who].iloc[:, 2:])/data["baseline"][who].iloc[:, 2:]), 2.5, axis=1)
+            who_data_rel[who][f"{scen}_ub"] = np.percentile(((data["baseline"][who].iloc[:, 2:] - data[scen][who].iloc[:, 2:])/data["baseline"][who].iloc[:, 2:]), 97.5, axis=1)
+
+   # Save to excel (to be called for subsequent plotting)
+    excel_file_path = fig_tab_dir / 'Relative WHO Target Impacts.xlsx'
+    writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
+    for sheet_name, df in who_data_rel.items():
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+    writer.close()
 
 def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
 

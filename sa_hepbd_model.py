@@ -6,7 +6,7 @@ import hbv.sensitivity
 
 
 # Set Own Save Directory
-#save_path  =
+save_path  = r"C:\Users\chris.seaman\OneDrive - Burnet Institute\Desktop\SA HepB-BD modelling\"
 
 # Creates directory (if not already existing)
 save_dir = pathlib.Path(save_path)
@@ -31,7 +31,8 @@ hbv.utils_plotting.transmission_plots(save_dir)  # Transmission modality in base
 owsa_runs = hbv.sensitivity.owsa_mtct_run() #run OWSA scenarios
 hbv.sensitivity.owsa_mtct_outcomes(owsa_runs, save_dir) # calculate and plot outcomes
 
-
+# Supplemental Data
+hbv.utils.who_targets_measure(save_dir)
 
 
 
