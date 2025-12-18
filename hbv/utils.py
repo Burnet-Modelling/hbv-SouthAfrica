@@ -1,5 +1,3 @@
-from typing import Any
-
 from hbv import constants as const
 import atomica as at
 import pathlib
@@ -561,6 +559,45 @@ def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
         comp_short.to_excel(writer, sheet_name="Dif Res_2050", index=True)
         comp_long.to_excel(writer, sheet_name="Dif Res_2100", index=True)
 
+    # Updated cost-effectiveness analysis (central only, main analysis)
+    cea_a1 = pd.DataFrame(columns = ["scenario", "total cost", "total dalys", "ic_nc", "id_nc", "icer_nc"]) # No HepB-BD in -ve HBsAg diagnosed mothers
+    cea_a1.scenario = const.main_scenarios
+    cea_a1 = cea_a1.set_index('scenario', drop=False)
+
+    cea_a2 = pd.DataFrame(columns = ["scenario", "total cost", "total dalys", "ic_nc", "id_nc", "icer_nc"]) # Yes HepB-BD in -ve HBsAg diagnosed mothers
+    cea_a2.scenario = const.main_scenarios
+    cea_a2 = cea_a2.set_index('scenario', drop=False)
+
+    # Fill Cost and DALY data
+    for scen in const.main_scenarios:
+        cea_a1.at[scen, "total cost"] = np.sum(costs[scen]["total"].iloc[34:, 1])
+        cea_a2.at[scen, "total cost"] = np.sum(costs[scen]["total_add"].iloc[34:, 1])
+
+        cea_a1.at[scen, "total dalys"] = np.sum(dalys[scen]["dalys"].iloc[34:, 1])
+        cea_a2.at[scen, "total dalys"] = np.sum(dalys[scen]["dalys"].iloc[34:, 1])
+
+    # Sort ascending by total cost
+    cea_a1 = cea_a1.sort_values(by="total cost", ascending=True).reset_index(drop=True)
+    cea_a2 = cea_a2.sort_values(by="total cost", ascending=True).reset_index(drop=True)
+
+    # Calculate incremental costs
+    for i in range(len(cea_a1)-1):
+        cea_a1.loc[i+1, "ic_nc"] = cea_a1.loc[i+1, "total cost"] - cea_a1.loc[i, "total cost"]
+        cea_a2.loc[i+1, "ic_nc"] = cea_a2.loc[i+1, "total cost"] - cea_a2.loc[i, "total cost"]
+
+        cea_a1.loc[i+1, "id_nc"] = cea_a1.loc[i, "total dalys"] - cea_a1.loc[i+1, "total dalys"]
+        cea_a2.loc[i+1, "id_nc"] = cea_a2.loc[i, "total dalys"] - cea_a2.loc[i+1, "total dalys"]
+
+        cea_a1.loc[i+1, "icer_nc"] = cea_a1.loc[i+1, "ic_nc"]/cea_a1.loc[i+1, "id_nc"]
+        cea_a2.loc[i+1, "icer_nc"] = cea_a2.loc[i+1, "ic_nc"]/cea_a2.loc[i+1, "id_nc"]
+
+    # Save to excel for further calculations
+    with pd.ExcelWriter(res_save_dir/'raw_tab_figs'/'Cost Effectiveness Analysis_main.xlsx', engine='xlsxwriter') as writer:
+        cea_a1.to_excel(writer, sheet_name='Cost Assumption 1', index=False)
+        cea_a2.to_excel(writer, sheet_name='Cost Assumption 2', index=False)
+
+
+    # Updated cost-effectiveness analysis (central only, supplemental)
 
     # Output for cost-effectiveness frontier plot
     wtp_daly = const.wtp_daly

@@ -6,7 +6,7 @@ import hbv.sensitivity
 
 
 # Set Own Save Directory
-save_path  = r"C:\Users\chris.seaman\OneDrive - Burnet Institute\Desktop\SA HepB-BD modelling\"
+save_path  = r'C:\Users\chris.seaman\OneDrive - Burnet Institute\Desktop'
 
 # Creates directory (if not already existing)
 save_dir = pathlib.Path(save_path)
