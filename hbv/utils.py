@@ -598,6 +598,42 @@ def zaf_economic_analysis(res_save_dir, h_disc = 0.03, c_disc = 0.03):
 
 
     # Updated cost-effectiveness analysis (central only, supplemental)
+    cea_s1 = pd.DataFrame(columns = ["scenario", "total cost", "total dalys", "ic_nc", "id_nc", "icer_nc"]) # No HepB-BD in -ve HBsAg diagnosed mothers
+    cea_s1.scenario = const.supp_scenarios
+    cea_s1 = cea_s1.set_index('scenario', drop=False)
+
+    cea_s2 = pd.DataFrame(columns = ["scenario", "total cost", "total dalys", "ic_nc", "id_nc", "icer_nc"]) # Yes HepB-BD in -ve HBsAg diagnosed mothers
+    cea_s2.scenario = const.supp_scenarios
+    cea_s2 = cea_s2.set_index('scenario', drop=False)
+
+    # Fill Cost and DALY data
+    for scen in const.supp_scenarios:
+        cea_s1.at[scen, "total cost"] = np.sum(costs[scen]["total"].iloc[34:, 1])
+        cea_s2.at[scen, "total cost"] = np.sum(costs[scen]["total_add"].iloc[34:, 1])
+
+        cea_s1.at[scen, "total dalys"] = np.sum(dalys[scen]["dalys"].iloc[34:, 1])
+        cea_s2.at[scen, "total dalys"] = np.sum(dalys[scen]["dalys"].iloc[34:, 1])
+
+    # Sort ascending by total cost
+    cea_s1 = cea_s1.sort_values(by="total cost", ascending=True).reset_index(drop=True)
+    cea_s2 = cea_s2.sort_values(by="total cost", ascending=True).reset_index(drop=True)
+
+    # Calculate incremental costs
+    for i in range(len(cea_a1) - 1):
+        cea_s1.loc[i + 1, "ic_nc"] = cea_s1.loc[i + 1, "total cost"] - cea_s1.loc[i, "total cost"]
+        cea_s2.loc[i + 1, "ic_nc"] = cea_s2.loc[i + 1, "total cost"] - cea_s2.loc[i, "total cost"]
+
+        cea_s1.loc[i + 1, "id_nc"] = cea_s1.loc[i, "total dalys"] - cea_s1.loc[i + 1, "total dalys"]
+        cea_s2.loc[i + 1, "id_nc"] = cea_s2.loc[i, "total dalys"] - cea_s2.loc[i + 1, "total dalys"]
+
+        cea_s1.loc[i + 1, "icer_nc"] = cea_s1.loc[i + 1, "ic_nc"] / cea_s1.loc[i + 1, "id_nc"]
+        cea_s2.loc[i + 1, "icer_nc"] = cea_s2.loc[i + 1, "ic_nc"] / cea_s2.loc[i + 1, "id_nc"]
+
+    # Save to excel for further calculations
+    with pd.ExcelWriter(res_save_dir / 'raw_tab_figs' / 'Cost Effectiveness Analysis_supp.xlsx',
+                        engine='xlsxwriter') as writer:
+        cea_s1.to_excel(writer, sheet_name='Cost Assumption 1', index=False)
+        cea_s2.to_excel(writer, sheet_name='Cost Assumption 2', index=False)
 
     # Output for cost-effectiveness frontier plot
     wtp_daly = const.wtp_daly

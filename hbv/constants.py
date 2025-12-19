@@ -24,11 +24,13 @@ trans_bins = {"0-0": [0], "1-4": [4], "5-9": [9], "10-19": [19], "20-29": [29], 
 
 main_scenarios = ["baseline", "sel pap + sel bd", "universal", "sel pap + univ bd"]
 add_scenarios = ["sel pap dna + sel bd", "sel pap dna + univ bd"]
+supp_scenarios = ["baseline", "sel pap dna + sel bd", "universal", "sel pap dna + univ bd"]
 zaf_scenarios = main_scenarios + add_scenarios
 
 main_full = ["Baseline \n (No HepB-BD)", "Selective PAP \n+ Selective HepB-BD", "Universal \n HepB-BD",
              "Selective PAP \n+ Universal HepB-BD"]
 add_full = ["Selective PAP (DNA) \n+ Selective HepB-BD", "Selective PAP (DNA) \n+ Universal HepB-BD"]
+supp_full = ["Baseline \n (No HepB-BD)", "Selective PAP (DNA) \n+ Selective HepB-BD", "Universal \n HepB-BD", "Selective PAP (DNA) \n+ Universal HepB-BD"]
 zaf_scenarios_full = main_full + add_full
 
 
