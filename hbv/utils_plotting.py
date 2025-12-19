@@ -14,7 +14,7 @@ import sciris as sc
 def cost_eff_frontier(res_save_dir):
 
     main_scens = ["sel pap + sel bd", "universal", "sel pap + univ bd"]
-    sens_scens = ["sel pap dna + sel bd", "sel pap dna + univ bd"]
+    sens_scens = ["sel pap dna + sel bd", "universal", "sel pap dna + univ bd"]
 
     half_gdp = (0.5*6250)*18.33
     full_gdp = (1*6250)*18.33
@@ -171,6 +171,12 @@ def cost_eff_frontier(res_save_dir):
     sup_cef.tight_layout()
     sup_cef.savefig(supp_save_dir/ "Supp CEF_HBV DNA screen.png", dpi=400)
     plt.close()
+
+    # Save CEF analysis data to excel (provide CEA uncertainty)
+    f1_data.to_csv(main_save_dir/ "CEF Data_Cost Assumption 1_main.csv", index=False)
+    f2_data.to_csv(main_save_dir/ "CEF Data_Cost Assumption 2_main.csv", index=False)
+    s1_data.to_csv(main_save_dir/ "CEF Data_Cost Assumption 1_supp.csv", index=False)
+    s2_data.to_csv(main_save_dir/ "CEF Data_Cost Assumption 2_supp.csv", index=False)
 
 # Transmission Route Plot (Fig 2)
 def transmission_plots(res_save_dir):
