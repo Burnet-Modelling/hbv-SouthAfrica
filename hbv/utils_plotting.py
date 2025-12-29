@@ -196,6 +196,58 @@ def transmission_plots(res_save_dir):
     plt.close()
 
 
+# WHO Targets plot (Supplement)
+
+def who_target_plots(res_save_dir):
+
+    """
+    Generates WHO target plots using absolute + relative values in each scenario (including No HepB-BD baseline)
+    """
+
+    fig_tab_dir = res_save_dir / 'raw_tab_figs'
+    measures = ["who_inc_u5", "who_inc_pop", "who_mort"] # sheet names to iterate through
+    ylabs = ["Hepatitis B Incidence \n (Under 5 years, per 100,000 population)",
+             "Hepatitis B Incidence \n (Total, per 100,000 population)",
+             "Hepatitis B Mortality \n (Total, per 100,000 population)"]
+
+    colors = ["blue", "green", "orange", "red"]
+    legend = const.main_full
+
+    fig = plt.figure(figsize=(20,15))
+    for i, meas in enumerate(measures):
+        who_abs = pd.read_excel(fig_tab_dir/"Absolute WHO Target Impacts.xlsx", sheet_name=meas)
+        who_rel = pd.read_excel(fig_tab_dir/"Relative WHO Target Impacts.xlsx", sheet_name=meas)
+
+        ax_abs = fig.add_subplot(3, 2, (i*2)+1)
+        ax_rel = fig.add_subplot(3, 2,(i*2)+2)
+
+        for j, scen in enumerate(const.main_scenarios):
+            # Absolute Plot (top)
+            ax_abs.plot(who_abs.year, who_abs[f"{scen}_cent"], color = colors[j], label = legend[j])
+            ax_abs.fill_between(who_abs.year, who_abs[f"{scen}_lb"], who_abs[f"{scen}_ub"], alpha=0.2, color = colors[j])
+            ax_abs.set_xlim(2015, 2100)
+            ax_abs.set_ylabel(ylabs[i])
+
+            if i ==0:
+                ax_abs.legend(loc="best")
+
+            # Relative Plot (bottom)
+            if scen != "baseline":
+                ax_rel.plot(who_rel.year, who_rel[f"{scen}_cent"]*1e2, color = colors[j])
+                ax_rel.fill_between(who_rel.year, who_rel[f"{scen}_lb"]*1e2, who_rel[f"{scen}_ub"]*1e2, alpha=0.2, color = colors[j])
+                ax_rel.set_xlim(2015, 2100)
+                ax_rel.set_ylabel("Relative Reduction (%) \n vs No HepB-BD (Baseline)")
+
+        ax_abs.set_ylim(0, max(who_abs[f"baseline_ub"].iloc[35:]))
+
+    fig.tight_layout()
+    fig.savefig(res_save_dir / "Supplemental Results/" / 'WHO Target Progress.png', dpi=400)
+    plt.close()
+
+
+
+
+
 
 
 

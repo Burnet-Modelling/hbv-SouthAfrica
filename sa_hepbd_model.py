@@ -33,7 +33,7 @@ hbv.sensitivity.owsa_mtct_outcomes(owsa_runs, save_dir) # calculate and plot out
 
 # Supplemental Data
 hbv.utils.who_targets_measure(save_dir) # TODO: generate plots for supplement
-
+hbv.utils_plotting.who_target_plots(save_dir)
 
 
 
