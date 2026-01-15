@@ -302,6 +302,13 @@ def owsa_mtct_outcomes(owsa_runs, res_save_dir):
             for meas in measures:
                 summ_data[sen].at[meas, scen] = np.sum(econ_dict[sen][meas][scen])
 
+    # Export summ_data to excel (manual incremental CE analysis)
+    excel_file_path = res_save_dir/'Main Text Results'/'OWSA ICEA data.xlsx'
+    writer = pd.ExcelWriter(excel_file_path, engine='xlsxwriter')
+    for sheet_name, df in summ_data.items():
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+    writer.close()
+
     # Calculate difference vs baseline
     for sen in sens:
         bl_cost = summ_data[sen].at["tot_cost", "baseline"]
@@ -309,7 +316,6 @@ def owsa_mtct_outcomes(owsa_runs, res_save_dir):
         for scen in const.main_scenarios:
             summ_data[sen].at["tot_cost", scen] =  bl_cost - summ_data[sen].at["tot_cost", scen] # costs averted
             summ_data[sen].at["dalys", scen] = bl_daly - summ_data[sen].at["dalys", scen] # DALYs averted
-
 
     # Plot data
     plot_scens = const.main_scenarios[1:]
