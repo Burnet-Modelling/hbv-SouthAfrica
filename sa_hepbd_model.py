@@ -32,7 +32,7 @@ owsa_runs = hbv.sensitivity.owsa_mtct_run() #run OWSA scenarios
 hbv.sensitivity.owsa_mtct_outcomes(owsa_runs, save_dir) # calculate and plot outcomes
 
 # Supplemental Data
-hbv.utils.who_targets_measure(save_dir) # TODO: generate plots for supplement
+hbv.utils.who_targets_measure(save_dir)
 hbv.utils_plotting.who_target_plots(save_dir)
 
 

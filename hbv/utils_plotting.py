@@ -58,7 +58,7 @@ def cost_eff_frontier(res_save_dir):
     for idx, scen in enumerate(f1_keep_cols):
         ax.plot(f1_data.wtp_thresh, f1_data[scen]*1e2, label=full_scen[idx], lw=2)
         ax.legend(loc="center right")
-        ax.set_ylabel (f"Proportion of {const.runs} simulations where \nscenario yielded highest net-benefit (%)")
+        ax.set_ylabel (f"Proportion of {const.runs} simulations where \nscenario yielded lowest net economic cost (%)")
         ax.set_xlabel("Willingness-to-pay per DALY averted (2024 ZAR)")
     ax.vlines(x=half_gdp, ymin=0, ymax=105, color="black", linestyles="--", alpha=0.4)
     ax.vlines(x=full_gdp, ymin=0, ymax=105, color="black", linestyles="--", alpha=0.4)
@@ -70,7 +70,7 @@ def cost_eff_frontier(res_save_dir):
     ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
     ax.set_ylim(0, 101)
     fig1.tight_layout()
-    fig1.savefig(main_save_dir / "Figure 1 CEF.pdf", dpi=400)
+    fig1.savefig(main_save_dir / "Figure 1 CEAC.png", dpi=400)
     plt.close()
 
     # Figure 2: CEF of selective_WHO, universal, combined_WHO to 2100, yes HepB-BD in HBsAg screened (sensitivity)
@@ -95,7 +95,7 @@ def cost_eff_frontier(res_save_dir):
     for idx, scen in enumerate(f2_keep_cols):
         ax.plot(f2_data.wtp_thresh, f2_data[scen]*1e2, label=full_scen[idx], lw=2)
         ax.legend(loc="center right")
-        ax.set_ylabel (f"Proportion of {const.runs} simulations where \nscenario yielded highest net-benefit (%)")
+        ax.set_ylabel (f"Proportion of {const.runs} simulations where \nscenario yielded lowest net economic cost (%)")
         ax.set_xlabel("Willingness-to-pay per DALY averted (2024 ZAR)")
     ax.vlines(x=half_gdp, ymin=0, ymax=105, color="black", linestyles="--", alpha=0.4)
     ax.vlines(x=full_gdp, ymin=0, ymax=105, color="black", linestyles="--", alpha=0.4)
@@ -107,7 +107,7 @@ def cost_eff_frontier(res_save_dir):
     ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
     ax.set_ylim(0, 101)
     fig2.tight_layout()
-    fig2.savefig(main_save_dir/ "Figure 2 CEF_sens.pdf", dpi=400)
+    fig2.savefig(main_save_dir/ "Figure 2 CEAC_sens.png", dpi=400)
     plt.close()
 
     # Supplement: CEF of selective_SA, universal, combined_SA to 2100, yes HepB-BD in HBsAg screened (sensitivity; uses cef_data_f1, cef_data_f2)
@@ -167,9 +167,9 @@ def cost_eff_frontier(res_save_dir):
     bottom.set_title("ANC screened HBsAg negative HepB-BD eligible")
     bottom.set_xlabel("Willingness-to-pay per DALY averted (2024 ZAR)")
 
-    sup_cef.supylabel(f"Proportion of {const.runs} simulations where \nscenario yielded highest net-benefit (%)")
+    sup_cef.supylabel(f"Proportion of {const.runs} simulations where \nscenario yielded lowest net economic cost (%)")
     sup_cef.tight_layout()
-    sup_cef.savefig(supp_save_dir/ "Supp CEF_HBV DNA screen.png", dpi=400)
+    sup_cef.savefig(supp_save_dir/ "Supp CEAC_HBV DNA screen.png", dpi=400)
     plt.close()
 
     # Save CEF analysis data to excel (provide CEA uncertainty)
